@@ -6,6 +6,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Restaurantes NFC</title>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7429GHXMBM"></script>
+
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-7429GHXMBM');
+
+    // Evento de prueba
+    gtag('event', 'nfc_tap', {
+      restaurant: 'veta',
+      restaurant_name: 'VETA Grill Steakhouse Barcelona',
+      card_id: 'TEST',
+      card_name: 'Prueba',
+      nfc_id: 'test',
+      source: 'nfc',
+      debug_mode: true
+    });
+  </script>
+
 </head>
 
 <body>
@@ -18,7 +45,7 @@
 
     <h1>Restaurantes NFC</h1>
 
-    <p>La página funciona correctamente.</p>
+    <p>Google Analytics funcionando.</p>
 
   </div>
 
