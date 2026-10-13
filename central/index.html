@@ -59,8 +59,8 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     // Sustituye por Project URL y publishable/anon key. Nunca pongas service_role aquí.
-    const SUPABASE_URL = 'PEGA_AQUI_TU_SUPABASE_PROJECT_URL';
-    const SUPABASE_ANON_KEY = 'PEGA_AQUI_TU_SUPABASE_PUBLISHABLE_KEY';
+    const SUPABASE_URL = 'https://qcvhxrudzjlgqlhvnkkl.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_OpfoWwYD2lvC9dVTT_UT8A_Bvz_GKRw';
     const configured = SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('PEGA_AQUI')
       && !SUPABASE_ANON_KEY.includes('PEGA_AQUI');
     const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
