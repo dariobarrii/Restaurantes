@@ -21,6 +21,15 @@ main{width:min(1180px,100%);margin:auto;padding:30px clamp(16px,4vw,48px) 60px}.
 <section id="loginGate" class="panel hidden"><h2>Sesión requerida</h2><p class="muted">Iniciá sesión desde NQ Central para acceder a la administración.</p><button class="primary" id="backLogin">Ir al acceso</button></section>
 <section id="app" class="hidden">
 <div class="grid"><div class="metric"><span>Restaurantes registrados</span><strong id="restaurantCount">—</strong></div><div class="metric"><span>Solicitudes pendientes</span><strong id="pendingCount">—</strong></div><div class="metric"><span>Usuarios aprobados</span><strong id="approvedCount">—</strong></div></div>
+<section class="panel">
+<h2>Estadísticas NFC + QR</h2>
+<p class="muted">Datos históricos de <code>nfc_events</code>. Los periodos se calculan con la hora local del navegador.</p>
+<div class="tablewrap"><table style="min-width:1120px"><thead><tr>
+<th>Restaurante</th><th>NFC hoy</th><th>NFC 7 días</th><th>NFC 30 días</th><th>NFC total</th>
+<th>QR hoy</th><th>QR 7 días</th><th>QR 30 días</th><th>QR total</th><th>Última interacción</th>
+</tr></thead><tbody id="statsBody"><tr><td colspan="10" class="empty">Cargando estadísticas…</td></tr></tbody></table></div>
+<p id="statsNote" class="muted" style="font-size:12px;margin-bottom:0">Las estadísticas se actualizan con el botón «Actualizar datos».</p>
+</section>
 <div class="columns">
 <section class="panel"><h2>Solicitudes de acceso</h2><p class="muted">Aprobá una cuenta y asignale el restaurante correspondiente.</p><div class="toolbar"><input id="userSearch" placeholder="Buscar por nombre o email"></div><div class="tablewrap"><table><thead><tr><th>Usuario</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="usersBody"><tr><td colspan="3" class="empty">Cargando…</td></tr></tbody></table></div></section>
 <section class="panel"><h2>Crear restaurante</h2><p class="muted">Agregá un restaurante a NQ Central sin modificar los datos históricos.</p><form id="restaurantForm"><div class="field"><label for="restaurantName">Nombre del restaurante</label><input id="restaurantName" required maxlength="120" placeholder="Ej. Feral Steakhouse"></div><div class="field"><label for="restaurantSlug">Identificador (slug)</label><input id="restaurantSlug" required pattern="[a-z0-9-]+" maxlength="80" placeholder="feral-steakhouse"></div><button class="primary" type="submit">Crear restaurante</button></form><h2 style="margin-top:28px">Restaurantes</h2><div class="tablewrap"><table><thead><tr><th>Nombre</th><th>Estado</th></tr></thead><tbody id="restaurantsBody"><tr><td colspan="2" class="empty">Cargando…</td></tr></tbody></table></div></section>
@@ -46,6 +55,42 @@ async function init(){
  if(!profile||profile.role!=='admin'||profile.status!=='approved'){await supabase.auth.signOut();show('Esta cuenta no tiene permisos de administración.',true);$('#loginGate').classList.remove('hidden');return;}
  $('#loginGate').classList.add('hidden');$('#app').classList.remove('hidden');await loadData();
 }
+async function loadNfcStats(){
+ const body=$('#statsBody'),note=$('#statsNote');
+ if(!restaurants.length){body.innerHTML='<tr><td colspan="10" class="empty">Primero creá los restaurantes en NQ Central.</td></tr>';note.textContent='';return;}
+ body.innerHTML='<tr><td colspan="10" class="empty">Consultando eventos NFC y QR…</td></tr>';
+ const now=new Date();
+ const startToday=new Date(now);startToday.setHours(0,0,0,0);
+ const start7=new Date(now);start7.setDate(start7.getDate()-6);start7.setHours(0,0,0,0);
+ const start30=new Date(now);start30.setDate(start30.getDate()-29);start30.setHours(0,0,0,0);
+ const recentResult=await supabase.from('nfc_events').select('restaurant,event,created_at')
+   .gte('created_at',start30.toISOString()).order('created_at',{ascending:false}).limit(10000);
+ if(recentResult.error){
+   body.innerHTML='<tr><td colspan="10" class="empty">No se pudieron leer los eventos: '+esc(recentResult.error.message)+'</td></tr>';
+   note.textContent='Revisaremos los permisos de lectura de nfc_events si el error continúa.';
+   return;
+ }
+ const events=recentResult.data||[];
+ const totals=await Promise.all(restaurants.flatMap(r=>['nfc_tap','qr_scan'].map(async type=>{
+   const result=await supabase.from('nfc_events').select('id',{count:'exact',head:true}).eq('restaurant',r.name).eq('event',type);
+   return {key:r.name+'|'+type,count:result.count,error:result.error};
+ })));
+ const totalMap=new Map(totals.map(t=>[t.key,t]));
+ const fmtDate=value=>value?new Date(value).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+ const count=(name,type,from)=>events.filter(e=>e.restaurant===name&&e.event===type&&new Date(e.created_at)>=from).length;
+ body.innerHTML=restaurants.map(r=>{
+   const nfc=totalMap.get(r.name+'|nfc_tap'),qr=totalMap.get(r.name+'|qr_scan');
+   const last=events.find(e=>e.restaurant===r.name);
+   const failed=nfc?.error||qr?.error;
+   return '<tr><td><strong>'+esc(r.name)+'</strong></td>'+
+    '<td>'+count(r.name,'nfc_tap',startToday)+'</td><td>'+count(r.name,'nfc_tap',start7)+'</td><td>'+count(r.name,'nfc_tap',start30)+'</td><td><strong>'+(nfc?.count??'—')+'</strong></td>'+
+    '<td>'+count(r.name,'qr_scan',startToday)+'</td><td>'+count(r.name,'qr_scan',start7)+'</td><td>'+count(r.name,'qr_scan',start30)+'</td><td><strong>'+(qr?.count??'—')+'</strong></td>'+
+    '<td>'+fmtDate(last?.created_at)+'</td></tr>';
+ }).join('');
+ const anyFailed=totals.some(t=>t.error);
+ note.textContent=(anyFailed?'Algunos totales históricos no pudieron consultarse; revisá los permisos de nfc_events. ':'')+
+   'Periodos: hoy, últimos 7 días y últimos 30 días. Los totales históricos se consultan por restaurante y tipo de evento.';
+}
 async function loadData(){
  show('Actualizando datos…');
  const [p,r]=await Promise.all([
@@ -57,7 +102,9 @@ async function loadData(){
  $('#restaurantCount').textContent=restaurants.length;
  $('#pendingCount').textContent=profiles.filter(x=>x.status==='pending').length;
  $('#approvedCount').textContent=profiles.filter(x=>x.status==='approved').length;
- renderUsers();renderRestaurants();fillSelects();show('Datos actualizados correctamente.');
+ renderUsers();renderRestaurants();fillSelects();
+ await loadNfcStats();
+ show('Datos actualizados correctamente.');
 }
 function renderUsers(){
  const q=$('#userSearch').value.trim().toLowerCase();
