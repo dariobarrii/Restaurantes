@@ -119,10 +119,11 @@
           if (!profile || profile.status !== 'approved') {
             await supabase.auth.signOut();
             show('Tu cuenta todavía no está aprobada. El acceso se habilitará cuando el administrador revise la solicitud.');
+          } else if (profile.role === 'admin') {
+            show('Acceso validado. Abriendo administración…');
+            window.location.href = './admin.html';
           } else {
-            show(profile.role === 'admin'
-              ? 'Acceso validado. El panel de administración se añadirá en la siguiente etapa.'
-              : 'Acceso validado. El panel del restaurante se añadirá en la siguiente etapa.');
+            show('Acceso validado. Tu portal de restaurante estará disponible cuando el administrador te asigne un restaurante.');
           }
         }
       } catch (error) {
