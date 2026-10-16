@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0908"><title>NQ Central | Administración</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0908;--panel:#15110f;--line:#38291f;--wood:#a8784d;--gold:#d7b47b;--muted:#b6aaa0;--text:#f6f0e9;--red:#e58c7b;--green:#9ac7a0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#2b1d14 0,#0b0908 58%);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px clamp(16px,4vw,48px);border-bottom:1px solid var(--line);background:#0b0908cc;position:sticky;top:0;backdrop-filter:blur(12px);z-index:2}
+.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border:1px solid var(--wood);border-radius:12px;display:grid;place-items:center;color:var(--gold);font-weight:800}.brand strong{display:block;letter-spacing:.04em}.brand small{color:var(--muted)}
+button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--text);background:#211a15}button.primary{background:linear-gradient(110deg,#a8784d,#d7b47b);color:#1a1008;border:0;font-weight:800}button:disabled{opacity:.5;cursor:wait}
+main{width:min(1180px,100%);margin:auto;padding:30px clamp(16px,4vw,48px) 60px}.topline{display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap;margin-bottom:24px}h1{font-size:clamp(28px,4vw,40px);letter-spacing:-.04em;line-height:1.1;margin:0}h2{font-size:18px;margin:0 0 16px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:22px 0}.metric,.panel{background:#15110feF;border:1px solid var(--line);border-radius:16px;padding:20px}.metric span{color:var(--muted);font-size:13px}.metric strong{display:block;font-size:30px;color:var(--gold);margin-top:8px}.columns{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}.panel{min-width:0;margin-bottom:16px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select,.field input,.field select{background:#0d0b0a;border:1px solid #443328;border-radius:9px;padding:11px;color:var(--text);min-width:0}.toolbar input{flex:1;min-width:180px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:560px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #ffffff12;vertical-align:middle}th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}td{font-size:14px}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-size:12px}.pill.approved{color:var(--green);border-color:#416748}.pill.pending{color:var(--gold)}.pill.rejected,.error{color:var(--red)}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:7px 10px;font-size:12px}.status{display:none;margin:16px 0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}.status.show{display:block}.status.error{border-color:#8e5147;color:#ffc4b8}.field{display:grid;gap:7px;margin:12px 0}.field label{font-size:13px;color:#e2d5c8}.formrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.empty{padding:20px;color:var(--muted);text-align:center}.hidden{display:none!important}
+@media(max-width:820px){.columns{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.grid .metric:last-child{grid-column:1/-1}}@media(max-width:500px){.grid{grid-template-columns:1fr}.grid .metric:last-child{grid-column:auto}.formrow{grid-template-columns:1fr}header{align-items:flex-start}.brand small{display:none}}
+</style>
+</head>
+<body>
+<header><div class="brand"><div class="mark">NQ</div><div><strong>NQ CENTRAL</strong><small>Administración de restaurantes</small></div></div><button id="signOutBtn">Cerrar sesión</button></header>
+<main>
+<div class="topline"><div><p class="muted" style="margin:0 0 8px">PANEL DE CONTROL</p><h1>Administración</h1><p class="muted" style="margin:8px 0 0">Gestioná accesos y restaurantes desde un solo lugar.</p></div><button class="primary" id="refreshBtn">Actualizar datos</button></div>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+<section id="loginGate" class="panel hidden"><h2>Sesión requerida</h2><p class="muted">Iniciá sesión desde NQ Central para acceder a la administración.</p><button class="primary" id="backLogin">Ir al acceso</button></section>
+<section id="app" class="hidden">
+<div class="grid"><div class="metric"><span>Restaurantes registrados</span><strong id="restaurantCount">—</strong></div><div class="metric"><span>Solicitudes pendientes</span><strong id="pendingCount">—</strong></div><div class="metric"><span>Usuarios aprobados</span><strong id="approvedCount">—</strong></div></div>
+<div class="columns">
+<section class="panel"><h2>Solicitudes de acceso</h2><p class="muted">Aprobá una cuenta y asignale el restaurante correspondiente.</p><div class="toolbar"><input id="userSearch" placeholder="Buscar por nombre o email"></div><div class="tablewrap"><table><thead><tr><th>Usuario</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="usersBody"><tr><td colspan="3" class="empty">Cargando…</td></tr></tbody></table></div></section>
+<section class="panel"><h2>Crear restaurante</h2><p class="muted">Agregá un restaurante a NQ Central sin modificar los datos históricos.</p><form id="restaurantForm"><div class="field"><label for="restaurantName">Nombre del restaurante</label><input id="restaurantName" required maxlength="120" placeholder="Ej. Feral Steakhouse"></div><div class="field"><label for="restaurantSlug">Identificador (slug)</label><input id="restaurantSlug" required pattern="[a-z0-9-]+" maxlength="80" placeholder="feral-steakhouse"></div><button class="primary" type="submit">Crear restaurante</button></form><h2 style="margin-top:28px">Restaurantes</h2><div class="tablewrap"><table><thead><tr><th>Nombre</th><th>Estado</th></tr></thead><tbody id="restaurantsBody"><tr><td colspan="2" class="empty">Cargando…</td></tr></tbody></table></div></section>
+</div>
+<section class="panel"><h2>Asignar usuario a un restaurante</h2><p class="muted">Usá esta sección para completar la asignación después de aprobar una solicitud.</p><form id="assignForm"><div class="formrow"><div class="field"><label for="assignUser">Usuario aprobado</label><select id="assignUser" required><option value="">Seleccionar usuario</option></select></div><div class="field"><label for="assignRestaurant">Restaurante</label><select id="assignRestaurant" required><option value="">Seleccionar restaurante</option></select></div></div><div class="formrow"><div class="field"><label for="memberRole">Permiso</label><select id="memberRole"><option value="owner">Propietario</option><option value="manager">Encargado</option><option value="viewer">Solo lectura</option></select></div><div class="field" style="align-content:end"><button class="primary" type="submit">Guardar asignación</button></div></div></form></section>
+</section>
+</main>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SUPABASE_URL='https://qcvhxrudzjlgqlhvnkkl.supabase.co';
+const SUPABASE_KEY='sb_publishable_OpfoWwYD2lvC9dVTT_UT8A_Bvz_GKRw';
+const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=s=>document.querySelector(s);
+let profiles=[],restaurants=[];
+function show(message,error=false){const el=$('#status');el.textContent=message;el.className='status show'+(error?' error':'');}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function statusPill(s){return '<span class="pill '+esc(s)+'">'+esc(s==='approved'?'Aprobado':s==='pending'?'Pendiente':s==='rejected'?'Rechazado':s)+'</span>';}
+async function init(){
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session){$('#loginGate').classList.remove('hidden');$('#app').classList.add('hidden');return;}
+ const {data:profile,error}=await supabase.from('app_profiles').select('role,status').eq('user_id',session.user.id).maybeSingle();
+ if(error){show('No se pudo validar el acceso. Confirmá que la migración de NQ Central esté aplicada. '+error.message,true);return;}
+ if(!profile||profile.role!=='admin'||profile.status!=='approved'){await supabase.auth.signOut();show('Esta cuenta no tiene permisos de administración.',true);$('#loginGate').classList.remove('hidden');return;}
+ $('#loginGate').classList.add('hidden');$('#app').classList.remove('hidden');await loadData();
+}
+async function loadData(){
+ show('Actualizando datos…');
+ const [p,r]=await Promise.all([
+  supabase.from('app_profiles').select('user_id,full_name,email,role,status,created_at').order('created_at',{ascending:false}),
+  supabase.from('app_restaurants').select('id,name,slug,status').order('name')
+ ]);
+ if(p.error||r.error){show('No se pudieron cargar los datos. '+(p.error?.message||r.error?.message),true);return;}
+ profiles=p.data||[];restaurants=r.data||[];
+ $('#restaurantCount').textContent=restaurants.length;
+ $('#pendingCount').textContent=profiles.filter(x=>x.status==='pending').length;
+ $('#approvedCount').textContent=profiles.filter(x=>x.status==='approved').length;
+ renderUsers();renderRestaurants();fillSelects();show('Datos actualizados correctamente.');
+}
+function renderUsers(){
+ const q=$('#userSearch').value.trim().toLowerCase();
+ const list=profiles.filter(p=>[p.full_name,p.email,p.role,p.status].some(v=>String(v||'').toLowerCase().includes(q)));
+ $('#usersBody').innerHTML=list.length?list.map(p=>'<tr><td><strong>'+esc(p.full_name||'Sin nombre')+'</strong><br><span class="muted">'+esc(p.email||p.user_id)+'</span><br><span class="muted">'+esc(p.role)+'</span></td><td>'+statusPill(p.status)+'</td><td><div class="actions">'+(p.status!=='approved'?'<button data-action="approve" data-id="'+esc(p.user_id)+'">Aprobar</button>':'')+(p.status!=='rejected'?'<button data-action="reject" data-id="'+esc(p.user_id)+'">Rechazar</button>':'')+'</div></td></tr>').join(''):'<tr><td colspan="3" class="empty">No hay solicitudes que coincidan.</td></tr>';
+}
+function renderRestaurants(){
+ $('#restaurantsBody').innerHTML=restaurants.length?restaurants.map(r=>'<tr><td><strong>'+esc(r.name)+'</strong><br><span class="muted">'+esc(r.slug)+'</span></td><td>'+statusPill(r.status)+'</td></tr>').join(''):'<tr><td colspan="2" class="empty">Todavía no hay restaurantes. Creá el primero arriba.</td></tr>';
+}
+function fillSelects(){
+ const approved=profiles.filter(p=>p.status==='approved');
+ $('#assignUser').innerHTML='<option value="">Seleccionar usuario</option>'+approved.map(p=>'<option value="'+esc(p.user_id)+'">'+esc(p.full_name||p.email||p.user_id)+'</option>').join('');
+ $('#assignRestaurant').innerHTML='<option value="">Seleccionar restaurante</option>'+restaurants.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
+}
+$('#usersBody').addEventListener('click',async e=>{
+ const b=e.target.closest('button[data-action]');if(!b)return;
+ const id=b.dataset.id,action=b.dataset.action;
+ b.disabled=true;
+ const {error}=await supabase.from('app_profiles').update({status:action==='approve'?'approved':'rejected'}).eq('user_id',id);
+ if(error){show('No se pudo actualizar la solicitud: '+error.message,true);b.disabled=false;return;}
+ show(action==='approve'?'Usuario aprobado. Ahora asignalo a un restaurante.':'Solicitud rechazada.');
+ await loadData();
+});
+$('#restaurantName').addEventListener('input',()=>{if(!$('#restaurantSlug').dataset.edited)$('#restaurantSlug').value=$('#restaurantName').value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');});
+$('#restaurantSlug').addEventListener('input',()=>$('#restaurantSlug').dataset.edited='1');
+$('#restaurantForm').addEventListener('submit',async e=>{
+ e.preventDefault();const name=$('#restaurantName').value.trim(),slug=$('#restaurantSlug').value.trim();
+ const {error}=await supabase.from('app_restaurants').insert({name,slug,status:'approved'});
+ if(error){show('No se pudo crear el restaurante: '+error.message,true);return;}
+ $('#restaurantForm').reset();delete $('#restaurantSlug').dataset.edited;show('Restaurante creado correctamente.');await loadData();
+});
+$('#assignForm').addEventListener('submit',async e=>{
+ e.preventDefault();const restaurant_id=$('#assignRestaurant').value,user_id=$('#assignUser').value,member_role=$('#memberRole').value;
+ const {error}=await supabase.from('app_restaurant_members').upsert({restaurant_id,user_id,member_role},{onConflict:'restaurant_id,user_id'});
+ if(error){show('No se pudo guardar la asignación: '+error.message,true);return;}
+ show('Usuario asignado al restaurante correctamente.');
+});
+$('#userSearch').addEventListener('input',renderUsers);
+$('#refreshBtn').addEventListener('click',loadData);
+$('#signOutBtn').addEventListener('click',async()=>{await supabase.auth.signOut();location.href='./index.html';});
+$('#backLogin').addEventListener('click',()=>location.href='./index.html');
+supabase.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN')init();});
+init();
+</script>
+</body></html>
